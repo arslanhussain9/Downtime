@@ -29,24 +29,26 @@ export default function Navbar({
         <div className="flex items-center justify-between h-16 sm:h-20">
           
           {/* Logo & Platform Info */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => { setRole('admin'); setActiveTab('dashboard'); }}>
-            <img 
-              src="/logo.png" 
-              alt="ParetoFlow Logo" 
-              className="h-10 sm:h-11 w-auto object-contain rounded-xl"
-            />
+          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => { setRole('admin'); setActiveTab('dashboard'); }}>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-slate-200/90 shadow-xs p-1.5 flex items-center justify-center group-hover:border-blue-400 group-hover:shadow-sm transition-all shrink-0">
+              <img 
+                src="/logo-icon.png" 
+                alt="ParetoFlow" 
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
                   ParetoFlow
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center space-x-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Live Analytics</span>
+                  <span>Live</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium hidden sm:block">
-                Downtime Log & Root-Cause Analyzer
+                Downtime Log &amp; Root-Cause Analyzer
               </p>
             </div>
           </div>

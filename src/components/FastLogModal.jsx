@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, AlertCircle, Check, Sparkles, ChevronRight, Zap } from 'lucide-react';
+import { X, Clock, AlertCircle, Check, Zap } from 'lucide-react';
 
 export default function FastLogModal({ 
   isOpen, 
@@ -45,11 +45,14 @@ export default function FastLogModal({
     return localISOTime;
   }
 
-  // Listen for Escape key
+  // Listen for Escape key to close modal
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -117,7 +120,7 @@ export default function FastLogModal({
       setTimeout(() => {
         setSuccessToast(false);
         onClose();
-      }, 300);
+      }, 200);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to record downtime stoppage.');
     } finally {
@@ -131,53 +134,67 @@ export default function FastLogModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-hidden"
       onClick={onClose}
     >
+      {/* 1. Global Floating Close Button at top-right corner of screen */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 right-4 z-50 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-white text-slate-700 hover:text-rose-600 shadow-xl border border-slate-200 text-xs font-black transition-all hover:scale-105 cursor-pointer active:scale-95"
+      >
+        <X className="w-4 h-4 text-rose-500" />
+        <span>Close (ESC)</span>
+      </button>
+
+      {/* 2. Modal Dialog Card with strict max-height and internal scrolling */}
       <div 
-        className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[88vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.ctrlKey && e.key === 'Enter') handleSubmit();
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        
+        {/* STICKY HEADER - NEVER SCROLLS OUT OF SIGHT */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white z-20">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Fast Downtime Entry</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">Fast Downtime Entry</h3>
               <p className="text-xs text-slate-500 font-medium">Log industrial stoppage in under 20 seconds</p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            title="Close (Press ESC)"
-            className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold transition-colors cursor-pointer"
+            title="Close this dialog (or press ESC)"
+            className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-bold transition-colors cursor-pointer border border-transparent hover:border-rose-200"
           >
-            <X className="w-4 h-4" />
-            <span>Close (ESC)</span>
+            <X className="w-4 h-4 text-rose-500" />
+            <span>Close</span>
           </button>
         </div>
 
         {errorMsg && (
-          <div className="mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center space-x-2">
+          <div className="mx-6 mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center space-x-2 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successToast && (
-          <div className="mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center space-x-2 animate-bounce">
+          <div className="mx-6 mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center space-x-2 shrink-0 animate-bounce">
             <Check className="w-4 h-4 shrink-0" />
-            <span>Stoppage logged live! MTBF & Pareto recalculating...</span>
+            <span>Stoppage logged live! Showing in Stoppage Log...</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        {/* SCROLLABLE FORM BODY */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-4 flex-1 space-y-4">
           
           {/* Machine Selection */}
           <div>
@@ -192,7 +209,7 @@ export default function FastLogModal({
                     key={m.id}
                     type="button"
                     onClick={() => setMachineId(m.id)}
-                    className={`p-2.5 rounded-2xl text-left border transition-all ${
+                    className={`p-2.5 rounded-2xl text-left border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-blue-50/70 border-blue-500 shadow-sm shadow-blue-500/10 ring-1 ring-blue-500'
                         : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70'
@@ -229,7 +246,7 @@ export default function FastLogModal({
             <select
               value={reasonCodeId}
               onChange={(e) => setReasonCodeId(e.target.value)}
-              className="w-full bg-slate-50/80 border border-slate-200 text-slate-800 text-sm font-semibold rounded-2xl p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all cursor-pointer"
+              className="w-full bg-slate-50/80 border border-slate-200 text-slate-800 text-xs sm:text-sm font-semibold rounded-2xl p-2.5 sm:p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all cursor-pointer"
             >
               {reasonCodes.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -249,7 +266,7 @@ export default function FastLogModal({
                 <button
                   type="button"
                   onClick={() => setDurationMode('quick')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     durationMode === 'quick' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500'
                   }`}
                 >
@@ -258,7 +275,7 @@ export default function FastLogModal({
                 <button
                   type="button"
                   onClick={() => setDurationMode('custom')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     durationMode === 'custom' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500'
                   }`}
                 >
@@ -269,7 +286,7 @@ export default function FastLogModal({
 
             {durationMode === 'quick' ? (
               <div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {quickDurations.map((mins) => {
                     const active = durationMinutes === mins;
                     return (
@@ -277,7 +294,7 @@ export default function FastLogModal({
                         key={mins}
                         type="button"
                         onClick={() => setDurationMinutes(mins)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           active
                             ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 ring-2 ring-blue-600/20'
                             : 'bg-slate-100 hover:bg-slate-200/70 text-slate-700'
@@ -287,27 +304,27 @@ export default function FastLogModal({
                       </button>
                     );
                   })}
-                  <div className="flex items-center bg-slate-100 rounded-xl px-2.5 py-1 text-xs">
+                  <div className="flex items-center bg-slate-100 rounded-xl px-2 py-1 text-xs">
                     <input
                       type="number"
                       min="1"
                       value={durationMinutes}
                       onChange={(e) => setDurationMinutes(e.target.value)}
-                      className="w-12 bg-transparent text-slate-800 font-bold focus:outline-none"
+                      className="w-10 bg-transparent text-slate-800 font-bold focus:outline-none"
                     />
-                    <span className="text-slate-400 font-semibold">min</span>
+                    <span className="text-slate-400 font-semibold text-[11px]">min</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <span className="block text-[11px] font-medium text-slate-500 mb-1">Start Time</span>
                   <input
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -316,7 +333,7 @@ export default function FastLogModal({
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -334,7 +351,7 @@ export default function FastLogModal({
                   key={i}
                   type="button"
                   onClick={() => setComment(qc)}
-                  className="text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg transition-colors truncate max-w-[240px]"
+                  className="text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg transition-colors truncate max-w-[240px] cursor-pointer"
                 >
                   + {qc}
                 </button>
@@ -345,12 +362,12 @@ export default function FastLogModal({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="E.g. Thermal overload sensor tripped at high RPM. Restored coolant."
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-medium rounded-2xl p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-medium rounded-2xl p-2.5 sm:p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             ></textarea>
           </div>
 
           {/* Operator & Shift */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                 Operator
@@ -359,7 +376,7 @@ export default function FastLogModal({
                 type="text"
                 value={operatorName}
                 onChange={(e) => setOperatorName(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
             <div>
@@ -369,7 +386,7 @@ export default function FastLogModal({
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
               >
                 <option value="Morning">Morning Shift</option>
                 <option value="Afternoon">Afternoon Shift</option>
@@ -378,31 +395,32 @@ export default function FastLogModal({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="pt-2">
-            <div className="flex items-center space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-1/3 py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all text-center cursor-pointer"
-              >
-                Cancel / Close
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-2/3 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-lg shadow-blue-500/25 active:scale-[0.99] transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
-              >
-                <Clock className="w-4 h-4" />
-                <span>{submitting ? 'Recording Stoppage...' : 'Submit Downtime Log (<20s)'}</span>
-              </button>
-            </div>
-            <p className="text-center text-[11px] text-slate-400 mt-2 font-medium">
-              Press <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-mono text-[10px]">Ctrl + Enter</kbd> to quick submit or <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-mono text-[10px]">ESC</kbd> to close
-            </p>
-          </div>
-
         </form>
+
+        {/* STICKY FOOTER - NEVER SCROLLS OUT OF VIEW */}
+        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/90 shrink-0 z-20">
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-1/3 py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200 transition-all text-center cursor-pointer shadow-xs active:scale-95"
+            >
+              Cancel / Close
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-2/3 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 active:scale-[0.99] transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+            >
+              <Clock className="w-4 h-4" />
+              <span>{submitting ? 'Recording Stoppage...' : 'Submit Downtime Log (<20s)'}</span>
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-slate-400 mt-1.5 font-medium">
+            Press <kbd className="px-1 py-0.5 bg-slate-200/80 rounded text-slate-600 font-mono text-[9px]">ESC</kbd> or click outside to dismiss
+          </p>
+        </div>
 
       </div>
     </div>
