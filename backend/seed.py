@@ -48,56 +48,124 @@ def seed_database(db: Session = None, reset: bool = True):
         db.flush()
         machines[obj.code] = obj
 
-    # 2. Seed Controlled Reason Codes
+    # 2. Seed Controlled Reason Codes (Organized by Industrial Failure Category)
     reasons_data = [
+        # --- Thermal & Overheating ---
         {
             "code": "MTR-OVH",
-            "name": "Motor Overheating",
-            "category": "Mechanical",
-            "description": "Drive motor thermal cutoff exceeded safe operating threshold",
+            "name": "Motor Overheating & Thermal Overload",
+            "category": "Thermal",
+            "description": "Drive motor thermal cutoff exceeded threshold (>92°C) due to load or ventilation failure",
             "color": "#EF4444"  # Red (Dominant)
         },
         {
-            "code": "CNV-JAM",
-            "name": "Conveyor Belt Jam",
-            "category": "Mechanical",
-            "description": "Physical blockage or belt misalignment stopping material flow",
+            "code": "BRG-OVH",
+            "name": "Spindle & Bearing Overheating",
+            "category": "Thermal",
+            "description": "High bearing friction, lubricant breakdown, or cooling jacket restriction",
+            "color": "#F97316"  # Orange
+        },
+        {
+            "code": "CHL-OVH",
+            "name": "Coolant & Chiller Unit Failure",
+            "category": "Thermal",
+            "description": "Coolant radiator clogged, flow rate low, or refrigerant chiller unit tripped",
             "color": "#F59E0B"  # Amber
         },
+        # --- Sensors & Detection ---
         {
             "code": "SNR-FLT",
             "name": "Optical Sensor Misalignment",
-            "category": "Electrical",
-            "description": "Presence detection photodiode blinded or knocked out of position",
+            "category": "Sensors",
+            "description": "Presence detection photocell blinded by dust, dirty reflector, or shifted out of line",
             "color": "#3B82F6"  # Blue
+        },
+        {
+            "code": "PRX-FLT",
+            "name": "Proximity Sensor Failure",
+            "category": "Sensors",
+            "description": "Inductive proximity switch failed to detect part arrival or cable severed",
+            "color": "#0284C7"  # Sky
+        },
+        {
+            "code": "THM-FLT",
+            "name": "Thermal Sensor / Thermocouple Fault",
+            "category": "Sensors",
+            "description": "Thermocouple probe open circuit or loose wiring reading false high temperature",
+            "color": "#EC4899"  # Pink
+        },
+        {
+            "code": "SEC-STP",
+            "name": "Safety Light Curtain Tripped",
+            "category": "Sensors",
+            "description": "Infrared safety curtain or perimeter door interlock beam interrupted",
+            "color": "#8B5CF6"  # Purple
+        },
+        {
+            "code": "LMT-SWT",
+            "name": "Limit Switch Jam / Actuator Sticking",
+            "category": "Sensors",
+            "description": "Mechanical travel limit switch jammed with metal chips or sticking arm",
+            "color": "#6366F1"  # Indigo
+        },
+        # --- Mechanical, Conveyance & Pneumatics ---
+        {
+            "code": "CNV-JAM",
+            "name": "Conveyor Belt Jam & Blockage",
+            "category": "Mechanical",
+            "description": "Physical product blockage, skewed tray, or transfer belt slip",
+            "color": "#EAB308"  # Yellow
         },
         {
             "code": "HYD-LKG",
             "name": "Hydraulic Line Pressure Drop",
             "category": "Mechanical",
-            "description": "Hydraulic oil seal leakage or solenoid valve seal blow",
-            "color": "#8B5CF6"  # Purple
+            "description": "Hydraulic oil seal leak, valve solenoid blow, or pump pressure drop (<100 bar)",
+            "color": "#A855F7"  # Purple
         },
         {
-            "code": "TLS-WRN",
-            "name": "Tool Bit Wear & Breakage",
-            "category": "Tooling",
-            "description": "Carbide insert chipped or exceeding maximum run cycles",
-            "color": "#EC4899"  # Pink
+            "code": "PNM-DRP",
+            "name": "Pneumatic Pressure Drop (<5 Bar)",
+            "category": "Mechanical",
+            "description": "Plant compressed air supply pressure fell below minimum cylinder actuation threshold",
+            "color": "#06B6D4"  # Cyan
         },
+        {
+            "code": "GBX-SLP",
+            "name": "Gearbox / Drive Belt Slippage",
+            "category": "Mechanical",
+            "description": "Timing belt teeth stripped or transmission gearbox backlash slippage",
+            "color": "#64748B"  # Slate
+        },
+        {
+            "code": "LUB-FLT",
+            "name": "Auto-Lubrication Pressure Low",
+            "category": "Mechanical",
+            "description": "Central grease/oil reservoir empty or distributor block line clogged",
+            "color": "#059669"  # Emerald
+        },
+        # --- Electrical & Automation ---
         {
             "code": "ELE-TRP",
             "name": "Electrical Breaker Trip",
             "category": "Electrical",
             "description": "Overcurrent or earth fault trip on secondary distribution panel",
-            "color": "#6366F1"  # Indigo
+            "color": "#4F46E5"  # Indigo
         },
         {
-            "code": "OPR-ABS",
-            "name": "Operator Handover Delay",
-            "category": "Operational",
-            "description": "Crew transition or mandatory ergonomics pause exceeded window",
-            "color": "#10B981"  # Green
+            "code": "SRV-ERR",
+            "name": "Servo Drive / Encoder Error",
+            "category": "Electrical",
+            "description": "Axis servo motor resolver loss, over-torque spike, or inverter fault code",
+            "color": "#D946EF"  # Fuchsia
+        },
+        # --- Tooling, Material & Operational ---
+        {
+            "code": "TLS-WRN",
+            "name": "Tool Bit Wear & Breakage",
+            "category": "Tooling",
+            "description": "Carbide cutting insert chipped, worn out, or exceeding max cycles",
+            "color": "#E11D48"  # Rose
         },
         {
             "code": "MAT-DEF",
@@ -105,6 +173,13 @@ def seed_database(db: Session = None, reset: bool = True):
             "category": "Material",
             "description": "Infeed stock tolerance out of specification causing machine pause",
             "color": "#14B8A6"  # Teal
+        },
+        {
+            "code": "OPR-ABS",
+            "name": "Operator Handover Delay",
+            "category": "Operational",
+            "description": "Crew transition or mandatory ergonomics pause exceeded window",
+            "color": "#10B981"  # Green
         }
     ]
 
@@ -132,6 +207,14 @@ def seed_database(db: Session = None, reset: bool = True):
             "Motor casing overheating; wait for thermal reset relay.",
             "High ambient heat in bay caused motor enclosure to reach 95°C."
         ],
+        "BRG-OVH": [
+            "Spindle bearing housing temperature exceeded 85°C. Flushed lubrication.",
+            "High friction vibration detected on main rotary bearing."
+        ],
+        "CHL-OVH": [
+            "Coolant chiller radiator clogged with mist residue. Cleaned condenser filter.",
+            "Coolant flow switch tripped due to low recirculating pump pressure."
+        ],
         "CNV-JAM": [
             "Box caught between guide rails, belt slipped.",
             "Pallet debris jammed in secondary roller drum.",
@@ -141,11 +224,39 @@ def seed_database(db: Session = None, reset: bool = True):
         "SNR-FLT": [
             "Dust on optical reflector caused false part-present signal.",
             "Forklift bump knocked sensor bracket out of true 5 degrees.",
-            "Proximity sensor vibration loosening."
+            "Optical lens cleaned and aligned to laser target."
+        ],
+        "PRX-FLT": [
+            "Inductive proximity sensor loose in clamp bracket; failed part position detect.",
+            "Sensor LED dark; replaced intermittent M12 sensor connector cable."
+        ],
+        "THM-FLT": [
+            "Thermocouple junction wire loose, showing erratic 200°C spikes.",
+            "Replaced burnt thermal probe on heating zone 2."
+        ],
+        "SEC-STP": [
+            "Safety light curtain beam tripped by falling cardboard trim.",
+            "Safety interlock gate switch misaligned after vibration."
+        ],
+        "LMT-SWT": [
+            "Z-axis home limit switch stuck with metal chips; cleaned microswitch.",
+            "Limit switch roller bent; straightened and re-calibrated."
         ],
         "HYD-LKG": [
             "O-ring on manifold valve 3 leaking pressurized hydraulic fluid.",
             "Pressure dropped to 85 bar; replaced return line hose fitting."
+        ],
+        "PNM-DRP": [
+            "Main air supply dropped to 4.2 bar; secondary compressor kicked on.",
+            "Pneumatic quick-disconnect fitting leaking air at station 4."
+        ],
+        "GBX-SLP": [
+            "Synchronous timing belt loose; tensioner bolt adjusted.",
+            "Planetary gearbox oil level low; topped up synthetic gear oil."
+        ],
+        "LUB-FLT": [
+            "Automatic central greaser low level switch triggered machine interlock.",
+            "Purged air bubble from lubrication line manifold."
         ],
         "TLS-WRN": [
             "Carbide end mill worn beyond tolerance, rough surface finish detected.",
@@ -153,7 +264,11 @@ def seed_database(db: Session = None, reset: bool = True):
         ],
         "ELE-TRP": [
             "Current surge during spindle startup tripped breaker B-12.",
-            "Ground fault detector activated on auxiliary chiller pump."
+            "Ground fault detector activated on auxiliary pump."
+        ],
+        "SRV-ERR": [
+            "Y-axis servo driver displayed error E-07 (Over-torque limit). Reset drive.",
+            "Encoder communication glitch resolved by reseating cable shielding."
         ],
         "OPR-ABS": [
             "Shift handover briefing ran over due to quality audit.",

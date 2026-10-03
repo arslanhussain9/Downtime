@@ -17,14 +17,33 @@ export const INITIAL_MACHINES = [
 ];
 
 export const INITIAL_REASON_CODES = [
-  { id: 1, code: "MTR-OVH", name: "Motor Overheating", category: "Mechanical", description: "Drive motor thermal cutoff exceeded threshold", is_active: true, color: "#EF4444" },
-  { id: 2, code: "CNV-JAM", name: "Conveyor Belt Jam", category: "Mechanical", description: "Physical blockage or belt misalignment stopping flow", is_active: true, color: "#F59E0B" },
-  { id: 3, code: "SNR-FLT", name: "Optical Sensor Misalignment", category: "Electrical", description: "Presence detection sensor blinded or shifted", is_active: true, color: "#3B82F6" },
-  { id: 4, code: "HYD-LKG", name: "Hydraulic Line Pressure Drop", category: "Mechanical", description: "Hydraulic oil seal leakage or solenoid valve trip", is_active: true, color: "#8B5CF6" },
-  { id: 5, code: "TLS-WRN", name: "Tool Bit Wear & Breakage", category: "Tooling", description: "Carbide insert chipped or exceeding maximum cycles", is_active: true, color: "#EC4899" },
-  { id: 6, code: "ELE-TRP", name: "Electrical Breaker Trip", category: "Electrical", description: "Overcurrent trip on secondary distribution panel", is_active: true, color: "#6366F1" },
-  { id: 7, code: "OPR-ABS", name: "Operator Handover Delay", category: "Operational", description: "Crew transition or safety briefing delay", is_active: true, color: "#10B981" },
-  { id: 8, code: "MAT-DEF", name: "Raw Material Dimension Defect", category: "Material", description: "Infeed stock tolerance out of specification", is_active: true, color: "#14B8A6" },
+  // --- Thermal & Overheating ---
+  { id: 1, code: "MTR-OVH", name: "Motor Overheating & Thermal Overload", category: "Thermal", description: "Drive motor thermal cutoff exceeded threshold (>92°C) due to load or ventilation failure", is_active: true, color: "#EF4444" },
+  { id: 9, code: "BRG-OVH", name: "Spindle & Bearing Overheating", category: "Thermal", description: "High bearing friction, lubricant breakdown, or cooling jacket restriction", is_active: true, color: "#F97316" },
+  { id: 10, code: "CHL-OVH", name: "Coolant & Chiller Unit Failure", category: "Thermal", description: "Coolant radiator clogged, flow rate low, or refrigerant chiller unit tripped", is_active: true, color: "#F59E0B" },
+  
+  // --- Sensors & Detection ---
+  { id: 3, code: "SNR-FLT", name: "Optical Sensor Misalignment", category: "Sensors", description: "Presence detection photocell blinded by dust, dirty reflector, or shifted out of line", is_active: true, color: "#3B82F6" },
+  { id: 11, code: "PRX-FLT", name: "Proximity Sensor Failure", category: "Sensors", description: "Inductive proximity switch failed to detect part arrival or cable severed", is_active: true, color: "#0284C7" },
+  { id: 12, code: "THM-FLT", name: "Thermal Sensor / Thermocouple Fault", category: "Sensors", description: "Thermocouple probe open circuit or loose wiring reading false high temperature", is_active: true, color: "#EC4899" },
+  { id: 13, code: "SEC-STP", name: "Safety Light Curtain Tripped", category: "Sensors", description: "Infrared safety curtain or perimeter door interlock beam interrupted", is_active: true, color: "#8B5CF6" },
+  { id: 14, code: "LMT-SWT", name: "Limit Switch Jam / Actuator Sticking", category: "Sensors", description: "Mechanical travel limit switch jammed with metal chips or sticking arm", is_active: true, color: "#6366F1" },
+
+  // --- Mechanical & Pneumatic ---
+  { id: 2, code: "CNV-JAM", name: "Conveyor Belt Jam & Blockage", category: "Mechanical", description: "Physical product blockage, skewed tray, or transfer belt slip", is_active: true, color: "#EAB308" },
+  { id: 4, code: "HYD-LKG", name: "Hydraulic Line Pressure Drop", category: "Mechanical", description: "Hydraulic oil seal leak, valve solenoid blow, or pump pressure drop (<100 bar)", is_active: true, color: "#A855F7" },
+  { id: 15, code: "PNM-DRP", name: "Pneumatic Pressure Drop (<5 Bar)", category: "Mechanical", description: "Plant compressed air supply pressure fell below minimum cylinder actuation threshold", is_active: true, color: "#06B6D4" },
+  { id: 16, code: "GBX-SLP", name: "Gearbox / Drive Belt Slippage", category: "Mechanical", description: "Timing belt teeth stripped or transmission gearbox backlash slippage", is_active: true, color: "#64748B" },
+  { id: 17, code: "LUB-FLT", name: "Auto-Lubrication Pressure Low", category: "Mechanical", description: "Central grease/oil reservoir empty or distributor block line clogged", is_active: true, color: "#059669" },
+
+  // --- Electrical & Automation ---
+  { id: 6, code: "ELE-TRP", name: "Electrical Breaker Trip", category: "Electrical", description: "Overcurrent or earth fault trip on secondary distribution panel", is_active: true, color: "#4F46E5" },
+  { id: 18, code: "SRV-ERR", name: "Servo Drive / Encoder Error", category: "Electrical", description: "Axis servo motor resolver loss, over-torque spike, or inverter fault code", is_active: true, color: "#D946EF" },
+
+  // --- Tooling, Material & Operational ---
+  { id: 5, code: "TLS-WRN", name: "Tool Bit Wear & Breakage", category: "Tooling", description: "Carbide cutting insert chipped, worn out, or exceeding max cycles", is_active: true, color: "#E11D48" },
+  { id: 8, code: "MAT-DEF", name: "Raw Material Dimension Defect", category: "Material", description: "Infeed stock tolerance out of specification causing machine pause", is_active: true, color: "#14B8A6" },
+  { id: 7, code: "OPR-ABS", name: "Operator Handover Delay", category: "Operational", description: "Crew transition or mandatory ergonomics pause exceeded window", is_active: true, color: "#10B981" },
 ];
 
 // Generate 60 realistic seeded events with dominant cause and seeded repeat pattern
@@ -386,12 +405,18 @@ export function evaluateRepeatAlerts(events, machines, reasons) {
       const latest = evList[evList.length - 1].start_time;
 
       let rec = `High recurrence of '${r.name}' on ${m.name} (${evList.length} times in 7 days). Immediate root cause investigation required.`;
-      if (r.name.includes("Overheating")) {
-        rec = `Repeated thermal trips on ${m.name}. Inspect coolant flow, fan operation, and motor bearing lubrication.`;
+      if (r.name.includes("Overheating") || r.name.includes("Bearing") || r.name.includes("Chiller")) {
+        rec = `Repeated thermal/overheating alerts on ${m.name}. Inspect coolant flow, radiator fan operation, heat sink thermal paste, and spindle bearing lubrication.`;
+      } else if (r.name.includes("Sensor") || r.name.includes("Proximity") || r.name.includes("Thermocouple") || r.name.includes("Curtain") || r.name.includes("Switch")) {
+        rec = `Recurring sensor/detection failures on ${m.name}. Clean optical lenses, calibrate proximity sensor gap, inspect thermocouple probes, and check bracket vibration mounting.`;
       } else if (r.name.includes("Jam") || r.name.includes("Belt")) {
-        rec = `Recurring mechanical jam on ${m.name}. Inspect belt tension, roller alignment, and guide rail clearances.`;
-      } else if (r.name.includes("Sensor")) {
-        rec = `Sensor alignment failures on ${m.name}. Calibrate optical sensors and check bracket vibration mounting.`;
+        rec = `Recurring mechanical jam on ${m.name}. Inspect belt tension, roller alignment, debris buildup, and guide rail clearances.`;
+      } else if (r.name.includes("Hydraulic") || r.name.includes("Pneumatic") || r.name.includes("Pressure")) {
+        rec = `Fluid power pressure loss on ${m.name}. Inspect compressed air line pressure (<5 bar), hydraulic seals, manifold valve solenoids, and pump pressure.`;
+      } else if (r.name.includes("Breaker") || r.name.includes("Servo") || r.name.includes("Electrical")) {
+        rec = `Repeated electrical/drive faults on ${m.name}. Inspect breaker load, ground fault detector, servo motor encoder wiring, and subpanel voltage stability.`;
+      } else if (r.name.includes("Lubrication")) {
+        rec = `Central lubrication alerts on ${m.name}. Refill grease/oil reservoir, purge line air bubbles, and inspect manifold metering valves.`;
       }
 
       alerts.push({

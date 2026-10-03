@@ -336,14 +336,18 @@ def check_and_update_repeat_alerts(db: Session) -> List[Dict[str, Any]]:
             r_name = matched_events["reason_name"].iloc[0]
             r_category = matched_events["reason_category"].iloc[0]
 
-            if "Overheating" in r_name:
-                rca_rec = f"Repeated thermal trips on {m_name}. Inspect coolant flow, fan operation, and motor bearing lubrication."
+            if "Overheating" in r_name or "Bearing" in r_name or "Chiller" in r_name:
+                rca_rec = f"Repeated thermal/overheating alerts on {m_name}. Inspect coolant flow, radiator fan operation, heat sink thermal paste, and spindle bearing lubrication."
+            elif "Sensor" in r_name or "Proximity" in r_name or "Thermocouple" in r_name or "Curtain" in r_name or "Switch" in r_name:
+                rca_rec = f"Recurring sensor/detection failures on {m_name}. Clean optical lenses, calibrate proximity sensor gap, inspect thermocouple probes, and check bracket vibration mounting."
             elif "Jam" in r_name or "Belt" in r_name:
-                rca_rec = f"Recurring mechanical jam on {m_name}. Inspect belt tension, roller alignment, and guide rail clearances."
-            elif "Sensor" in r_name:
-                rca_rec = f"Sensor alignment failures on {m_name}. Calibrate optical sensors and check bracket vibration mounting."
-            elif "Hydraulic" in r_name:
-                rca_rec = f"Repeated hydraulic pressure drops on {m_name}. Inspect hydraulic seals, valve solenoids, and pump pressure."
+                rca_rec = f"Recurring mechanical jam on {m_name}. Inspect belt tension, roller alignment, debris buildup, and guide rail clearances."
+            elif "Hydraulic" in r_name or "Pneumatic" in r_name or "Pressure" in r_name:
+                rca_rec = f"Fluid power pressure loss on {m_name}. Inspect compressed air line pressure (<5 bar), hydraulic seals, manifold valve solenoids, and pump pressure."
+            elif "Breaker" in r_name or "Servo" in r_name or "Electrical" in r_name:
+                rca_rec = f"Repeated electrical/drive faults on {m_name}. Inspect breaker load, ground fault detector, servo motor encoder wiring, and subpanel voltage stability."
+            elif "Lubrication" in r_name:
+                rca_rec = f"Central lubrication alerts on {m_name}. Refill grease/oil reservoir, purge line air bubbles, and inspect manifold metering valves."
             else:
                 rca_rec = f"High recurrence of '{r_name}' ({r_category}) on {m_name} (>=3 occurrences in 7 days). Immediate root cause investigation required."
 

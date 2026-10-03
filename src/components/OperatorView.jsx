@@ -51,16 +51,34 @@ export default function OperatorView({
     if (reasons.length > 0 && !selectedReason) setSelectedReason(reasons[0]);
   }, [machines, reasons]);
 
+  const [reasonCategory, setReasonCategory] = useState('ALL');
   const quickDurations = [5, 10, 15, 30, 45, 60, 90, 120];
 
-  const quickChips = [
-    "Motor thermal trip sensor cut off",
-    "Conveyor transfer jam cleared",
-    "Sensor optical reflector wiped",
-    "Hydraulic line pressure dropped",
-    "Worn carbide tool insert replaced",
-    "Shift handover safety check"
+  const quickObservationChips = [
+    { label: "Motor thermal trip (>92°C)", code: "MTR-OVH", icon: "🔥" },
+    { label: "Spindle bearing high friction overheat", code: "BRG-OVH", icon: "🔥" },
+    { label: "Chiller radiator overheated / low flow", code: "CHL-OVH", icon: "🔥" },
+    { label: "Optical sensor misaligned / dirty reflector", code: "SNR-FLT", icon: "📡" },
+    { label: "Proximity sensor failed part detect", code: "PRX-FLT", codeCategory: "Sensors", icon: "📡" },
+    { label: "Safety light curtain interrupted", code: "SEC-STP", icon: "📡" },
+    { label: "Thermocouple probe false overheat spike", code: "THM-FLT", icon: "📡" },
+    { label: "Limit switch roller jammed with chips", code: "LMT-SWT", icon: "📡" },
+    { label: "Conveyor transfer jam cleared", code: "CNV-JAM", icon: "⚙️" },
+    { label: "Pneumatic pressure dropped <5 bar", code: "PNM-DRP", icon: "⚙️" },
+    { label: "Hydraulic oil leak & pressure drop", code: "HYD-LKG", icon: "⚙️" },
+    { label: "Auto-lube oil reservoir low", code: "LUB-FLT", icon: "⚙️" },
+    { label: "Main breaker MCB tripped", code: "ELE-TRP", icon: "⚡" },
+    { label: "Servo drive encoder error", code: "SRV-ERR", icon: "⚡" },
+    { label: "Worn carbide tool insert replaced", code: "TLS-WRN", icon: "🔧" },
+    { label: "Material thickness out of spec", code: "MAT-DEF", icon: "📦" },
+    { label: "Shift handover safety briefing", code: "OPR-ABS", icon: "⏱️" }
   ];
+
+  const handlePickObservation = (chip) => {
+    setComment(chip.label);
+    const matched = reasons.find(r => r.code === chip.code);
+    if (matched) setSelectedReason(matched);
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -212,40 +230,68 @@ export default function OperatorView({
               </label>
               {selectedReason && (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                  {selectedReason.category}
+                  {selectedReason.category} • [{selectedReason.code}]
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {reasons.map((r) => {
-                const isSelected = selectedReason?.id === r.id;
-                const isDominant = r.code === 'MTR-OVH';
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setSelectedReason(r)}
-                    className={`p-2.5 rounded-2xl text-left border transition-all duration-150 relative ${
-                      isSelected
-                        ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-600/20 shadow-sm'
-                        : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-slate-500">
-                        {r.code}
-                      </span>
-                      <span 
-                        className="w-2.5 h-2.5 rounded-full shadow-2xs"
-                        style={{ backgroundColor: r.color }}
-                      ></span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 truncate mt-1">{r.name}</p>
-                    <span className="text-[10px] text-slate-400 block truncate">{r.category}</span>
-                  </button>
-                );
-              })}
+            {/* Category Filter Pills for Operator View */}
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {[
+                { id: 'ALL', label: 'All Causes' },
+                { id: 'Thermal', label: '🔥 Overheat' },
+                { id: 'Sensors', label: '📡 Sensors' },
+                { id: 'Mechanical', label: '⚙️ Mechanical' },
+                { id: 'Electrical', label: '⚡ Electrical' },
+                { id: 'Tooling', label: '🔧 Tooling' },
+                { id: 'Material', label: '📦 Material' },
+                { id: 'Operational', label: '⏱️ Ops' },
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setReasonCategory(c.id)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    reasonCategory === c.id
+                      ? 'bg-blue-600 text-white shadow-2xs scale-105'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1 border border-slate-100 rounded-2xl bg-slate-50/40">
+              {reasons
+                .filter(r => reasonCategory === 'ALL' || r.category === reasonCategory)
+                .map((r) => {
+                  const isSelected = selectedReason?.id === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setSelectedReason(r)}
+                      className={`p-2.5 rounded-2xl text-left border transition-all duration-150 relative cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-600/20 shadow-sm'
+                          : 'bg-white border-slate-200/80 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-slate-500">
+                          {r.code}
+                        </span>
+                        <span 
+                          className="w-2.5 h-2.5 rounded-full shadow-2xs"
+                          style={{ backgroundColor: r.color }}
+                        ></span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-900 truncate mt-1">{r.name}</p>
+                      <span className="text-[10px] text-slate-400 block truncate">{r.category}</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
@@ -269,7 +315,7 @@ export default function OperatorView({
                     key={mins}
                     type="button"
                     onClick={() => setDuration(mins)}
-                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all ${
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
                       isAct
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 ring-2 ring-blue-600/20 scale-105'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -294,18 +340,26 @@ export default function OperatorView({
 
           {/* 4. Step 4: Quick Comment & Observation */}
           <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-              Observation / Quick Comment
-            </label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {quickChips.map((chip, idx) => (
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                <span className="w-5 h-5 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-[10px] font-black">4</span>
+                <span>Observation (Click chip to auto-select reason)</span>
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2.5 max-h-36 overflow-y-auto p-1 border border-slate-100 rounded-2xl bg-slate-50/50">
+              {quickObservationChips.map((chip, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setComment(chip)}
-                  className="text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg transition-colors truncate max-w-[260px]"
+                  onClick={() => handlePickObservation(chip)}
+                  title={`Click to set comment and select reason [${chip.code}]`}
+                  className="text-[11px] font-semibold bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-700 px-2.5 py-1 rounded-xl transition-all border border-slate-200/90 shadow-2xs flex items-center space-x-1 cursor-pointer truncate max-w-[280px]"
                 >
-                  + {chip}
+                  <span>{chip.icon}</span>
+                  <span className="truncate">{chip.label}</span>
+                  <span className="text-[9px] font-mono px-1 py-0.2 bg-slate-100 text-slate-500 rounded font-bold">
+                    {chip.code}
+                  </span>
                 </button>
               ))}
             </div>
@@ -313,7 +367,7 @@ export default function OperatorView({
               type="text"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Short comment: e.g. High ambient temperature caused motor thermal breaker trip."
+              placeholder="Short comment: e.g. Drive motor casing reached 95°C. Cleaned air filter and checked thermal overload switch."
               className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-2xl p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>

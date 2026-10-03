@@ -58,16 +58,52 @@ export default function FastLogModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const [reasonCategoryFilter, setReasonCategoryFilter] = useState('ALL');
+  const [observationFilter, setObservationFilter] = useState('ALL');
+  const [autoMatchedNotice, setAutoMatchedNotice] = useState('');
+
   const quickDurations = [10, 15, 30, 45, 60, 90, 120];
 
-  const quickComments = [
-    "Motor thermal trip sensor cut off",
-    "Conveyor transfer jam cleared",
-    "Sensor reflector cleaned & aligned",
-    "Hydraulic pressure restored to 120 bar",
-    "Worn carbide tool insert replaced",
-    "Shift handover checklist briefing"
+  const quickFailureReasons = [
+    // Overheat / Thermal
+    { label: "Motor thermal overload cutoff tripped (>92°C)", reasonCode: "MTR-OVH", icon: "🔥", category: "Thermal" },
+    { label: "Spindle bearing high friction & thermal alarm", reasonCode: "BRG-OVH", icon: "🔥", category: "Thermal" },
+    { label: "Coolant chiller unit overheated / flow rate low", reasonCode: "CHL-OVH", icon: "🔥", category: "Thermal" },
+    { label: "Heat sink clogged with dust; cooling fan stalled", reasonCode: "MTR-OVH", icon: "🔥", category: "Thermal" },
+
+    // Sensors & Detection
+    { label: "Optical presence sensor dirty / misaligned", reasonCode: "SNR-FLT", icon: "📡", category: "Sensors" },
+    { label: "Proximity inductive sensor failed to detect part", reasonCode: "PRX-FLT", icon: "📡", category: "Sensors" },
+    { label: "Safety light curtain interrupted by falling scrap", reasonCode: "SEC-STP", icon: "📡", category: "Sensors" },
+    { label: "Thermocouple probe loose / false temperature spike", reasonCode: "THM-FLT", icon: "📡", category: "Sensors" },
+    { label: "Travel limit switch roller jammed with metal chips", reasonCode: "LMT-SWT", icon: "📡", category: "Sensors" },
+
+    // Mechanical & Pneumatics
+    { label: "Conveyor transfer jam cleared", reasonCode: "CNV-JAM", icon: "⚙️", category: "Mechanical" },
+    { label: "Pneumatic air pressure dropped below 5 bar", reasonCode: "PNM-DRP", icon: "⚙️", category: "Mechanical" },
+    { label: "Hydraulic hose fitting seal leak & pressure drop", reasonCode: "HYD-LKG", icon: "⚙️", category: "Mechanical" },
+    { label: "Synchronous timing belt loose / teeth slipping", reasonCode: "GBX-SLP", icon: "⚙️", category: "Mechanical" },
+    { label: "Central auto-lubrication oil reservoir empty", reasonCode: "LUB-FLT", icon: "⚙️", category: "Mechanical" },
+
+    // Electrical & Automation
+    { label: "Main distribution breaker MCB overcurrent trip", reasonCode: "ELE-TRP", icon: "⚡", category: "Electrical" },
+    { label: "Servo drive axis over-torque encoder fault", reasonCode: "SRV-ERR", icon: "⚡", category: "Electrical" },
+
+    // Tooling, Material & Operations
+    { label: "Carbide tool insert chipped / worn past tolerance", reasonCode: "TLS-WRN", icon: "🔧", category: "Tooling" },
+    { label: "Raw material sheet thickness out of specification", reasonCode: "MAT-DEF", icon: "📦", category: "Material" },
+    { label: "Shift handover crew briefing checklist delay", reasonCode: "OPR-ABS", icon: "⏱️", category: "Operational" }
   ];
+
+  const handleSelectObservation = (item) => {
+    setComment(item.label);
+    const matched = reasonCodes.find(r => r.code === item.reasonCode);
+    if (matched) {
+      setReasonCodeId(matched.id);
+      setAutoMatchedNotice(`Auto-selected [${matched.code}] ${matched.name}`);
+      setTimeout(() => setAutoMatchedNotice(''), 3500);
+    }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -243,17 +279,84 @@ export default function FastLogModal({
                 </span>
               )}
             </div>
+
+            {/* Category Quick Filter Pills */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {[
+                { id: 'ALL', label: 'All Causes' },
+                { id: 'Thermal', label: '🔥 Overheat' },
+                { id: 'Sensors', label: '📡 Sensors' },
+                { id: 'Mechanical', label: '⚙️ Mechanical' },
+                { id: 'Electrical', label: '⚡ Electrical' },
+                { id: 'Tooling', label: '🔧 Tooling' },
+                { id: 'Material', label: '📦 Material' },
+                { id: 'Operational', label: '⏱️ Ops' },
+              ].map((cat) => {
+                const isAct = reasonCategoryFilter === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setReasonCategoryFilter(cat.id)}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      isAct
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
             <select
               value={reasonCodeId}
               onChange={(e) => setReasonCodeId(e.target.value)}
               className="w-full bg-slate-50/80 border border-slate-200 text-slate-800 text-xs sm:text-sm font-semibold rounded-2xl p-2.5 sm:p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all cursor-pointer"
             >
-              {reasonCodes.map((r) => (
-                <option key={r.id} value={r.id}>
-                  [{r.code}] {r.name} — ({r.category})
-                </option>
-              ))}
+              {['Thermal', 'Sensors', 'Mechanical', 'Electrical', 'Tooling', 'Material', 'Operational'].map((catName) => {
+                const groupReasons = reasonCodes.filter(r => 
+                  (reasonCategoryFilter === 'ALL' || r.category === reasonCategoryFilter) &&
+                  r.category === catName
+                );
+                if (groupReasons.length === 0) return null;
+                return (
+                  <optgroup key={catName} label={`── ${catName.toUpperCase()} CAUSES ──`}>
+                    {groupReasons.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        [{r.code}] {r.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
+
+            {/* Selected Reason Cause Context Card */}
+            {selectedReason && (
+              <div className="mt-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start space-x-2 text-xs">
+                <span 
+                  className="w-2.5 h-2.5 rounded-full mt-0.5 shrink-0 shadow-2xs" 
+                  style={{ backgroundColor: selectedReason.color || '#3B82F6' }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wide">
+                      [{selectedReason.code}] {selectedReason.name}
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-100/70 text-blue-700">
+                      {selectedReason.category}
+                    </span>
+                  </div>
+                  {selectedReason.description && (
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      <span className="font-semibold text-slate-600">Why it happens:</span> {selectedReason.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Duration Mode Switcher */}
@@ -342,26 +445,69 @@ export default function FastLogModal({
 
           {/* Quick Comment Templates + Textarea */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-              Short Comment & Observation
-            </label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {quickComments.map((qc, i) => (
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Why Did It Stop? (Quick Observation Chips)
+              </label>
+              {autoMatchedNotice && (
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md animate-in fade-in">
+                  ✓ {autoMatchedNotice}
+                </span>
+              )}
+            </div>
+
+            {/* Category Filter Pills for Observation Chips */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {[
+                { id: 'ALL', label: 'All Observations' },
+                { id: 'Thermal', label: '🔥 Overheat' },
+                { id: 'Sensors', label: '📡 Sensors' },
+                { id: 'Mechanical', label: '⚙️ Mechanical' },
+                { id: 'Electrical', label: '⚡ Electrical' },
+                { id: 'Tooling', label: '🔧 Tooling' },
+                { id: 'Material', label: '📦 Material' },
+                { id: 'Operational', label: '⏱️ Ops' },
+              ].map((c) => (
                 <button
-                  key={i}
+                  key={c.id}
                   type="button"
-                  onClick={() => setComment(qc)}
-                  className="text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg transition-colors truncate max-w-[240px] cursor-pointer"
+                  onClick={() => setObservationFilter(c.id)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    observationFilter === c.id
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
                 >
-                  + {qc}
+                  {c.label}
                 </button>
               ))}
             </div>
+
+            <div className="flex flex-wrap gap-1.5 mb-2.5 max-h-36 overflow-y-auto p-1.5 border border-slate-200/70 rounded-2xl bg-slate-50/50">
+              {quickFailureReasons
+                .filter(item => observationFilter === 'ALL' || item.category === observationFilter)
+                .map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectObservation(item)}
+                    title={`Tap to auto-select reason [${item.reasonCode}] and fill observation`}
+                    className="text-[11px] font-semibold bg-white hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-slate-700 px-2.5 py-1.5 rounded-xl transition-all border border-slate-200/90 shadow-2xs flex items-center space-x-1.5 cursor-pointer group active:scale-95"
+                  >
+                    <span>{item.icon}</span>
+                    <span className="group-hover:font-bold">{item.label}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 bg-slate-100 group-hover:bg-blue-100 text-slate-500 group-hover:text-blue-700 rounded-md ml-1 font-bold">
+                      {item.reasonCode}
+                    </span>
+                  </button>
+                ))}
+            </div>
+
             <textarea
               rows="2"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="E.g. Thermal overload sensor tripped at high RPM. Restored coolant."
+              placeholder="Or write custom observation: e.g. Drive motor casing reached 95°C. Cleaned air filter and checked thermal overload switch."
               className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-medium rounded-2xl p-2.5 sm:p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             ></textarea>
           </div>
