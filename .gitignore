@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+*.log
+downtime.db
+.DS_Store
