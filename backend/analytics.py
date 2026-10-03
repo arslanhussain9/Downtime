@@ -147,6 +147,17 @@ def calculate_mtbf_mttr(db: Session, days: int = 30) -> Dict[str, Any]:
     machines = db.query(Machine).all()
     df = get_events_dataframe(db)
 
+    # Filter events by days window if specified
+    if days > 0 and not df.empty:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        if df["start_time"].dt.tz is not None:
+            cutoff = cutoff.replace(tzinfo=timezone.utc)
+        else:
+            cutoff = cutoff.replace(tzinfo=None)
+        df_events = df[df["start_time"] >= cutoff]
+    else:
+        df_events = df
+
     # Observation window (default 30 days * 24 hrs = 720 hrs)
     window_hours = float(days * 24.0)
 
@@ -156,8 +167,8 @@ def calculate_mtbf_mttr(db: Session, days: int = 30) -> Dict[str, Any]:
     plant_total_operating_hrs = 0.0
 
     for m in machines:
-        planned_hrs = float(days * (m.planned_hours_per_day or 24.0))
-        m_events = df[df["machine_id"] == m.id] if not df.empty else pd.DataFrame()
+        planned_hrs = float(days * (m.planned_hours_per_day or 24.0)) if days > 0 else 720.0
+        m_events = df_events[df_events["machine_id"] == m.id] if not df_events.empty else pd.DataFrame()
 
         failures = len(m_events)
         downtime_mins = float(m_events["duration_minutes"].sum()) if failures > 0 else 0.0

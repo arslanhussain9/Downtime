@@ -81,16 +81,24 @@ export default function App() {
       setMachines(machRes);
       setReasons(reasRes);
       setEvents(evRes.items || []);
+      return { overview: ovRes, mtbfData: mRes };
     } catch (err) {
       console.error('Data loading error:', err);
+      return null;
     } finally {
       if (showLoader) setLoading(false);
     }
   }, [daysWindow]);
 
+  // Initial load & window change
   useEffect(() => {
     loadData(true);
   }, [loadData]);
+
+  // Refresh live MTBF/MTTR whenever user switches role (login / operator / manager)
+  useEffect(() => {
+    loadData(false);
+  }, [role]);
 
   // Show temporary toast
   const triggerToast = (msg) => {
@@ -125,9 +133,15 @@ export default function App() {
   // Log Event from Fast Modal or Operator View
   const handleLogEvent = async (payload) => {
     const res = await api.logEvent(payload);
-    await loadData(false);
+    const fresh = await loadData(false);
     setActiveTab('log'); // Switch immediately to Stoppage Log view so user sees new log!
-    triggerToast(`✅ Stoppage recorded on ${res.machine || 'machine'}! Showing at top of Stoppage Log.`);
+    const mtbf = fresh?.overview?.plant_metrics?.plant_mtbf_hours;
+    const mttr = fresh?.overview?.plant_metrics?.plant_mttr_minutes;
+    triggerToast(
+      mtbf !== undefined
+        ? `✅ Stoppage logged! Live Plant MTBF updated to ${mtbf}h, MTTR to ${mttr}m.`
+        : `✅ Stoppage recorded on ${res.machine || 'machine'}! Showing at top of Stoppage Log.`
+    );
     return res;
   };
 
@@ -319,6 +333,8 @@ export default function App() {
             onLogSubmit={handleLogEvent}
             onInjectDemo={handleInjectDemo}
             events={events}
+            metrics={overview?.plant_metrics}
+            activeAlertsCount={activeAlertsCount}
           />
 
         ) : (
@@ -420,6 +436,11 @@ export default function App() {
             {/* 5. STOPPAGE LOG TAB */}
             {activeTab === 'log' && (
               <div className="space-y-7">
+                <MetricsOverview 
+                  metrics={overview?.plant_metrics}
+                  activeAlertsCount={activeAlertsCount}
+                  onAlertClick={() => setActiveTab('alerts')}
+                />
                 <EventLogTable 
                   events={events}
                   machines={machines}
